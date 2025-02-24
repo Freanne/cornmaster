@@ -13,7 +13,9 @@ class AuthController extends Controller
     // Méthode pour l'inscription d'un utilisateur
     public function register(Request $request)
     {
-        // Validation des données avec des règles renforcées
+        
+        try {
+            // Validation des données avec des règles renforcées
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -79,6 +81,12 @@ class AuthController extends Controller
             'message' => 'Utilisateur enregistré avec succès',
             'token' => $token,
         ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la création de l\'utilisateur',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
     }
 
     // Méthode pour la connexion d'un utilisateur
@@ -97,16 +105,17 @@ class AuthController extends Controller
         // dd(Hash::check($validated['password'], $user->password));
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
-                'message' => 'Identifiants incorrects'
+                'user' => $user,
+                'message' => 'Identifiants incorrects',
             ], 401);
         }
-
         // Créer un token
         $token = $user->createToken('AgricultureApp')->plainTextToken;
         // dd($user->createToken('AgricultureApp')->plainTextToken);
 
         return response()->json([
             'message' => 'Connexion réussie',
+            'user' => $user,
             'token' => $token,
         ], 200);
     }
@@ -119,9 +128,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->tokens->each(function ($token) {
-            $token->delete();
-        });
+        // $request->user()->tokens->each(function ($token) {
+        //     $token->delete();
+        // });
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Déconnexion réussie'], 200);
     }
